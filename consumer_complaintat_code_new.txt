@@ -1,0 +1,85 @@
+mysql -u root -p
+cloudera
+
+create database consumer;
+use consumer;
+create table customer(date_received varchar(10),product varchar(30),sub_product varchar(50),issue varchar(50),sub_issue varchar(50),consumer_complaint_narrative Text,company_public_response Text,company varchar(50),state  varchar(5),zipcode int,tags varchar(30),consumer_consent_provided varchar(30),submitted_via varchar(15),date_sent_to_company varchar(10),company_response_to_consumer varchar(30),timely_responseconsumer_disputed varchar(5),complaint_id int);
+load data local infile 'project/consumer/consumer_complaints_new.csv' into table customer fields terminated by ','enclosed by '"'lines terminated by '\r\n' ignore 1 lines;
+select distinct state from customer;
+
+sqoop:
+
+
+
+sqoop import --connect jdbc:mysql://localhost/consumer --username root --password cloudera --table customer --target-dir /user/cloudera/project/consumer/data/input -m 1 -direct
+
+
+project/consumer/data/input
+
+Customer_Complain_Analysis.pig
+
+CUSTOMER_COMPLAIN = LOAD 'project/consumer/data/input' using PigStorage(',') as (date_received:chararray,product:chararray,sub_product:chararray,issue:chararray,sub_issue:chararray,consumer_complaint_narrative:chararray,company_public_response:chararray,company:chararray,state:chararray,zipcode:int,tags:chararray,consumer_consent_provided:chararray,submitted_via:chararray,date_sent_to_company:chararray,company_response_to_consumer:chararray,timely_responseconsumer_disputed:chararray,complaint_id:int);
+GRP_COMPANY = GROUP CUSTOMER_COMPLAIN by company;
+CNT_COMPANY = FOREACH GRP_COMPANY GENERATE group,COUNT(CUSTOMER_COMPLAIN);
+STORE CNT_COMPANY INTO 'project/consumer/data/complains_by_company' using PigStorage(',');
+
+GRP_PRODUCT = GROUP CUSTOMER_COMPLAIN by Product;
+CNT_PRODUCT = FOREACH GRP_PRODUCT GENERATE group,COUNT(CUSTOMER_COMPLAIN);
+STORE CNT_PRODUCT INTO 'project/consumer/data/complains_by_Product' using PigStorage(',');
+GRP_LOCATION = GROUP CUSTOMER_COMPLAIN by State;
+CNT_LOCATION = FOREACH GRP_LOCATION GENERATE group,COUNT(CUSTOMER_COMPLAIN);
+STORE CNT_LOCATION INTO 'project/consumer/data/complains_by_location' using PigStorage(',');
+ 
+FLTR_TIME_RESPONSE = FILTER CUSTOMER_COMPLAIN by Timely_Responsesponse=='No';
+GRP_COMPANY_LOCATION = GROUP FLTR_TIME_RESPONSE by State;
+COMPANY_AND_LOCATION = FOREACH GRP_COMPANY_LOCATION GENERATE group,FLATTEN(FLTR_TIME_RESPONSE.Company);
+STORE COMPANY_AND_LOCATION INTO 'project/consumer/data/complains_by_response_no' using PigStorage(',');
+
+
+hive:
+
+create table customer_delta(date_received varchar(10),product varchar(30),sub_product varchar(50),issue varchar(50),sub_issue varchar(50),consumer_complaint_narrative string,company_public_response string,company varchar(50),state  varchar(5),zipcode int,tags varchar(30),consumer_consent_provided varchar(30),submitted_via varchar(15),date_sent_to_company varchar(10),company_response_to_consumer varchar(30),timely_response varchar(5),consumer_disputed varchar(5),complaint_id int) row format delimited fields terminated by ',' 
+location '/user/cloudera/finance/data/tables/customer'
+tblproperties ("skip.header.line.count"="1");
+ 
+ validation:
+ 
+ select state,zipcode,date_sent_to_company,timely_response,consumer_disputed,complaint_id from customer_delta;
+
+create table customer_orig(date_received varchar(10),sub_product varchar(50),issue varchar(50),sub_issue varchar(50),consumer_complaint_narrative string,company_public_response string,company varchar(50),state  varchar(5),zipcode int,tags varchar(30),consumer_consent_provided varchar(30),submitted_via varchar(15),date_sent_to_company varchar(10),company_response_to_consumer varchar(30),timely_response varchar(5),consumer_disputed varchar(5),complaint_id int) partitioned by (product varchar(30)) location '/user/cloudera/finance/data/tables/customer_orig';
+
+
+set hive.exec.dynamic.partition.mode=nonstrict 
+insert into table customer_orig partition(product)
+select
+date_received,
+sub_product,
+issue,
+sub_issue,
+consumer_complaint_narrative,
+company_public_response,
+company,
+state,
+zipcode,
+tags,
+consumer_consent_provided,
+submitted_via,
+date_sent_to_company,
+company_response_to_consumer,
+timely_response,
+consumer_disputed,
+complaint_id,
+product
+from customer_delta
+ 
+ 
+ 
+
+
+
+
+
+
+
+
+

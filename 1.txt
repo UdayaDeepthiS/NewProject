@@ -1,0 +1,77 @@
+
+class DLinkedList {
+private:
+	int data;
+	class DLinkedList* PrevAddress;
+	class DLinkedList* NextAddress;
+Public:
+	DLinkedList(int pData){
+		data = pData;
+		PrevAddress = NULL;
+		NextAddress= NULL;
+	}
+	
+	void addPrevAdress(class DLinkedList* PPrevAddress)
+	{
+		PrevAddress = PPrevAddress;
+	}
+
+	void addNextAdress(class DLinkedList* PNextAddress)
+	{
+		NextAddress = PNextAddress;
+	}
+	
+class DLinkedList* getPrevAdress(void)
+{
+	return PrevAddress;
+}
+
+class DLinkedList* getNextAdress(void)
+{
+	return NextAddress;
+}
+
+int getData()
+{
+	return data;
+}
+
+}
+
+
+
+int main()
+{
+	class DLinkedList* Start = new DLinkedList(3);
+	class DLinkedList* temp = new DLinkedList(4);
+	Start->addNextAdress(temp);
+	temp->addPrevAdress(Start);	
+
+		while(temp->getPrevAddress != NULL)
+		{
+			temp = temp->getPrevAddress();
+		}
+
+	int firstNodeData = temp->getData();
+
+		temp = temp->getNextAdress();
+		delete(temp->getPrevAddress());
+		(temp->getPrevAddress());
+
+		class DLinkedList* Start = NULL;
+		temp->addPrevAdress(Start);
+
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
